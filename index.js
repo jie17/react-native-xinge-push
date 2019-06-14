@@ -52,6 +52,14 @@ class XGPush {
     }
   }
 
+  static unRegisterAccount(account) {
+    if (Platform.OS === 'ios') {
+      return XGPushManager.unbindWithAccount(account);
+    } else {
+      return XGPushManager.delAccount(account);
+    }
+  }
+
   static setTag(tagName) {
     if (Platform.OS === 'ios') {
       return XGPushManager.bindWithTag(tagName);
