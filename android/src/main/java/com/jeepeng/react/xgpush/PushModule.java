@@ -8,6 +8,9 @@ import android.content.IntentFilter;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+
 import com.facebook.react.bridge.ActivityEventListener;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
@@ -37,6 +40,8 @@ public class PushModule extends ReactContextBaseJavaModule implements ActivityEv
 
     private Context reactContext;
     private int badge = 0;
+    private String XM_ACCESS_ID = null;
+    private String XM_ACCESS_KEY = null;
 
     public PushModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -44,6 +49,37 @@ public class PushModule extends ReactContextBaseJavaModule implements ActivityEv
         reactContext.addLifecycleEventListener(this);
         this.reactContext = reactContext;
         registerReceivers();
+
+        XGPushManager.registerPush(this.reactContext);
+
+        // Handle MI PUSH CONFIG
+        ////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////
+        try {
+            ApplicationInfo appInfo = reactContext.getPackageManager().getApplicationInfo(reactContext.getPackageName(),
+                    PackageManager.GET_META_DATA);
+
+            XM_ACCESS_ID = appInfo.metaData.getString("MY_XM_XG_ID");
+            XM_ACCESS_KEY = appInfo.metaData.getString("MY_XM_XG_KEY");
+
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        if((XM_ACCESS_ID  != null && XM_ACCESS_ID.length() != 0) || (XM_ACCESS_KEY != null && XM_ACCESS_KEY.length() != 0)) {
+
+            Log.d("XGQQ", "1. " + XM_ACCESS_ID.replace("XM-", ""));
+            Log.d("XGQQ", "2. " + XM_ACCESS_KEY.replace("XM-",""));
+            XGPushConfig.setMiPushAppId(this.reactContext, XM_ACCESS_ID.replace("XM-", ""));
+            XGPushConfig.setMiPushAppKey(this.reactContext, XM_ACCESS_KEY.replace("XM-",""));
+        }
+        ////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////
+
+        XGPushConfig.enableFcmPush(this.reactContext, true);
+        XGPushConfig.setHuaweiDebug(true);
+        XGPushConfig.enableOtherPush(this.reactContext, true);
+
     }
 
     @Override
@@ -378,30 +414,30 @@ public class PushModule extends ReactContextBaseJavaModule implements ActivityEv
 
     @ReactMethod
     public void getInitialNotification(Promise promise) {
+
         WritableMap params = Arguments.createMap();
-        Activity activity = getCurrentActivity();
         Log.d("getInitialNotification", ">>>>>>>>>>>>>>>>>");
-        if (activity != null) {
-            Intent intent = activity.getIntent();
-            XGPushClickedResult result = XGPushManager.onActivityStarted(activity);
-            if (result != null) {
-                Log.d("getInitialNotification", result.getContent());
+        try {
+
+            PushMessage mymessage =  PushMessage.getInstance();
+            if(mymessage.hasValue) {
+                params.putString("title",  mymessage.getTitle());
+                params.putString("content",  mymessage.getContent());
+                params.putString("custom_content",  mymessage.getCustomContent());
+                Log.d("getInitialNotification", "title: "+ mymessage.getTitle()+ "content: " + mymessage.getContent() + "custom_content: " + mymessage.getCustomContent());
+                mymessage.clearAll();
+                promise.resolve(params);
             }
-            try {
-                if(intent != null && intent.hasExtra("protect")) {
-                    String title = Rijndael.decrypt(intent.getStringExtra("title"));
-                    String content = Rijndael.decrypt(intent.getStringExtra("content"));
-                    String customContent = Rijndael.decrypt(intent.getStringExtra("custom_content"));
-                    params.putString("title",  title);
-                    params.putString("content",  content);
-                    params.putString("custom_content",  customContent);
-                    Log.d("getInitialNotification", content);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+            else {
+                promise.resolve(null);
             }
+
+        } catch (Exception e) {
+            Log.d("getInitialNotification", "Have Exception");
+            e.printStackTrace();
+            promise.resolve(null);
         }
-        promise.resolve(params);
+
     }
 
     @ReactMethod

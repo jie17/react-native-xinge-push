@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 
+import com.jeepeng.react.xgpush.PushMessage;
 import com.jeepeng.react.xgpush.Constants;
 import com.tencent.android.tpush.XGPushBaseReceiver;
 import com.tencent.android.tpush.XGPushClickedResult;
@@ -96,6 +97,11 @@ public class MessageReceiver extends XGPushBaseReceiver {
         }
         if (notification.getActionType() == XGPushClickedResult.NOTIFACTION_CLICKED_TYPE) {
             // 通知在通知栏被点击啦。。。。。
+
+            PushMessage message =  PushMessage.getInstance();
+            message.setAllValue(notification.getTitle(), notification.getContent(), notification.getCustomContent());
+
+
             Intent intent = new Intent(Constants.ACTION_ON_NOTIFICATION_CLICKED);
             Bundle bundle = new Bundle();
             bundle.putString("content", notification.getContent());
