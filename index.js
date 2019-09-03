@@ -44,6 +44,14 @@ class XGPush {
     }
   }
 
+  static register() {
+    if (Platform.OS === 'ios') {
+      // return XGPushManager.bindWithAccount(account);
+    } else {
+      return XGPushManager.registerPush();
+    }
+  }
+
   static registerAccount(account) {
     if (Platform.OS === 'ios') {
       return XGPushManager.bindWithAccount(account);
